@@ -52,17 +52,18 @@ public static void main(String argv[]) throws Exception
     	sentence = inFromUser.readLine();
     	tokens = new StringTokenizer(sentence);
     	String command = tokens.nextToken();
-    	
+	outToServer.writeUTF(command);
+
         if(command.equals("list")) {
-		    port += 2; //should wrap back to initial value?
-		    outToServer.writeBytes (port + " " + sentence + " " + '\n');
+		port += 2; //should wrap back to initial value?
+		outToServer.writeBytes (port + " " + sentence + " " + '\n');
 		    
-	        ServerSocket welcomeData = new ServerSocket(port);
-		    Socket dataSocket = welcomeData.accept();
-	 	    DataInputStream inData = new DataInputStream(
-	 	    	new BufferedInputStream(dataSocket.getInputStream()));
+	       	ServerSocket welcomeData = new ServerSocket(port);
+		Socket dataSocket = welcomeData.accept();
+	 	DataInputStream inData = new DataInputStream(
+	 	    new BufferedInputStream(dataSocket.getInputStream()));
 	 	    
-	 	    notEnd = true;
+	 	notEnd = true;
 	        while (notEnd) {
 	            modifiedSentence = inData.readUTF();
 	            if (modifiedSentence != null)
@@ -71,8 +72,8 @@ public static void main(String argv[]) throws Exception
 	            	System.out.println(modifiedSentence);
 	            }
 	        
-			welcomeData.close();
-			dataSocket.close();
+		welcomeData.close();
+		dataSocket.close();
 	        }
          else if(command.equals("retr:")) {
         	
@@ -98,9 +99,11 @@ public static void main(String argv[]) throws Exception
 		    	fileOut.write(fileContents);
 		    	System.out.println("Wrote file "+fileName+" successfully.");
 		    }
+		welcomeFile.close();
+		fileSocket.close();
          }
          else if(sentence.equals("stor:")) {
-        	 
+        	fileName = tokens.nextToken();
          }
          else if(sentence.equals("quit")) {
         	 isOpen = false;
