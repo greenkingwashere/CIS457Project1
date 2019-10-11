@@ -53,11 +53,12 @@ public static void main(String argv[]) throws Exception
     	tokens = new StringTokenizer(sentence);
     	String command = tokens.nextToken();
 	outToServer.writeUTF(command);
-
+	
         if(command.equals("list")) {
-		port += 2; //should wrap back to initial value?
+		//port += 2; //should wrap back to initial value?
 		outToServer.writeBytes (port + " " + sentence + " " + '\n');
-		    
+			  
+		port = inFromServer.readInt();
 	       	ServerSocket welcomeData = new ServerSocket(port);
 		Socket dataSocket = welcomeData.accept();
 	 	DataInputStream inData = new DataInputStream(
@@ -104,12 +105,14 @@ public static void main(String argv[]) throws Exception
          }
          else if(sentence.equals("stor:")) {
         	fileName = tokens.nextToken();
+
          }
          else if(sentence.equals("quit")) {
         	 isOpen = false;
         	 System.out.println("Have a nice day!");
          }
     }
+    ControlSocket.close();
 }
 
 private static void sendBytes(FileInputStream fis, OutputStream os) throws Exception {
