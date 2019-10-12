@@ -7,31 +7,42 @@ import javax.swing.*;
 
 class FTPClient { 
 	
-public static void main(String argv[]) throws Exception 
+public static void main(String argv[]) throws Exception
     { 
     String sentence; 
     String modifiedSentence; 
     String statusCode;
     String fileName;
+    StringTokenizer tokens;
     
-    int port = 12000;
+   	int controlPort = 12000;
+	int command_port = controlPort + 2;
 	
-	boolean isOpen = false;
-	boolean clientgo = true;
+	boolean isOpen = true;
+	boolean connectionEstablished = false;
 	boolean notEnd = true;
 	boolean fileExists = false;
 	
-	byte[] fileContents;
-	    
-	System.out.println("|| FTP Client Project 1 ~ CIS 457 ||\nEnter server address: (IP/server name) (port)");
+	DataOutputStream outToServer = null;
+	DataInputStream inFromServer = null;
+	DataInputStream inData = null;
+	
+	ServerSocket welcomeData = null;
+	Socket dataSocket = null;
+	Socket ControlSocket = null;
+	
+	//byte[] fileContents;
+
+	System.out.println("|| FTP Client Project 1 ~ CIS 457 ||");
 	//wait for user input
+	/*
 	BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
-    sentence = inFromUser.readLine();
-    StringTokenizer tokens = new StringTokenizer(sentence);
+    	sentence = inFromUser.readLine();
+    	StringTokenizer tokens = new StringTokenizer(sentence);
 
 	String serverName = tokens.nextToken();
-	int controlPort = Integer.parseInt(tokens.nextToken());
-    
+	controlPort = Integer.parseInt(tokens.nextToken());
+	
     Socket ControlSocket = null;
     try {
     	System.out.println("Connecting to " + serverName + ":" + controlPort);
@@ -42,45 +53,104 @@ public static void main(String argv[]) throws Exception
     catch (Exception e) {
     	System.out.println("Failed to set up socket.");
     }
-    
-	while(isOpen && clientgo) {
-        DataOutputStream outToServer = new DataOutputStream(ControlSocket.getOutputStream());
-        DataInputStream inFromServer = new DataInputStream(
-        	new BufferedInputStream (ControlSocket.getInputStream()));
+    */
+        //DataOutputStream outToServer = new DataOutputStream(ControlSocket.getOutputStream());
+        //DataInputStream inFromServer = new DataInputStream(ControlSocket.getInputStream());
+
+	while(isOpen) {
+
+        //outToServer = new DataOutputStream(ControlSocket.getOutputStream());
+        //inFromServer = new DataInputStream(ControlSocket.getInputStream());
           
         System.out.println("Input next command:");
-    	sentence = inFromUser.readLine();
+    	
+	BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
+	sentence = inFromUser.readLine();
     	tokens = new StringTokenizer(sentence);
     	String command = tokens.nextToken();
-	outToServer.writeUTF(command);
-	
-        if(command.equals("list")) {
-		//port += 2; //should wrap back to initial value?
-		outToServer.writeBytes (port + " " + sentence + " " + '\n');
-			  
-		port = inFromServer.readInt();
-	       	ServerSocket welcomeData = new ServerSocket(port);
-		Socket dataSocket = welcomeData.accept();
-	 	DataInputStream inData = new DataInputStream(
-	 	    new BufferedInputStream(dataSocket.getInputStream()));
-	 	    
-	 	notEnd = true;
-	        while (notEnd) {
-	            modifiedSentence = inData.readUTF();
-	            if (modifiedSentence != null)
-	            	notEnd = false;
-	            else
-	            	System.out.println(modifiedSentence);
-	            }
-	        
-		welcomeData.close();
+	//outToServer.writeUTF(command);
+        
+	if (command.equals("connect")) {
+		
+    		//sentence = inFromUser.readLine();
+		String serverName = tokens.nextToken();
+		controlPort = Integer.parseInt(tokens.nextToken());
+
+    		try {
+    			System.out.println("Connecting to " + serverName + ":" + controlPort);
+				
+    			if (ControlSocket != null) {
+    				outToServer.close();
+    				inFromServer.close();
+    				ControlSocket.close();
+    			}
+			
+    			ControlSocket = new Socket(serverName, controlPort);
+    			System.out.println("You are connected to " + serverName + ":" + controlPort);
+			connectionEstablished = true;
+
+        		outToServer = new DataOutputStream(ControlSocket.getOutputStream());
+        		inFromServer = new DataInputStream(ControlSocket.getInputStream());
+    		}
+    		catch (Exception e) {
+    			System.out.println("Failed to set up socket.");
+			System.out.println(e);
+			isOpen = false;
+		}
+
+	}	
+         else if(sentence.equals("quit")) {
+        	 isOpen = false;
+        	 System.out.println("Have a nice day!");
+         }
+	else if (connectionEstablished)
+		{
+		if(command.equals("list")) {
+		
+		command_port += 2;
+		//outToServer.flush();
+		outToServer.writeUTF(command);
+		outToServer.writeInt(command_port);
+		System.out.println("A POINT: "+command_port);
+		//sendCommand(command);
+		//outToServer.writeBytes (port + " " + sentence + " " + '\n');
+		//controlPort = inFromServer.readInt();
+
+		try {
+		welcomeData = new ServerSocket(command_port);
+		dataSocket = welcomeData.accept();
+	 	inData = new DataInputStream(dataSocket.getInputStream());
+		}
+		catch (Exception e) {
+		System.out.println(e);
+		}
+
+	 	//notEnd = true;
+	        System.out.println("\nListing files on port "+command_port);
+		while (true) {
+		    try {
+		    modifiedSentence = inData.readUTF();
+	            //if (modifiedSentence == null)
+	            //	notEnd = false;
+	            //else
+	            if (modifiedSentence.equals("EOF"))
+			break;
+
+		    System.out.println(modifiedSentence);
+		    }
+		    catch (EOFException e) {}
+		    }
+ 
+		System.out.println("\nAll files displayed.");
+		inData.close();
 		dataSocket.close();
+		welcomeData.close();
 	        }
          else if(command.equals("retr:")) {
-        	
+        	/*
         	fileName = tokens.nextToken();
         	
-        	ServerSocket welcomeFile = new ServerSocket(port);
+        	ServerSocket welcomeFile = new ServerSocket(command_port);
 		    Socket fileSocket = welcomeFile.accept();
 		    DataInputStream dataIn = new DataInputStream(fileSocket.getInputStream());
 		    
@@ -102,19 +172,24 @@ public static void main(String argv[]) throws Exception
 		    }
 		welcomeFile.close();
 		fileSocket.close();
-         }
+         */
+	 }
          else if(sentence.equals("stor:")) {
         	fileName = tokens.nextToken();
 
          }
-         else if(sentence.equals("quit")) {
-        	 isOpen = false;
-        	 System.out.println("Have a nice day!");
-         }
+	}
     }
-    ControlSocket.close();
+    if (ControlSocket != null) {
+    	outToServer.close();
+    	inFromServer.close();
+    	ControlSocket.close();
+    }
+}    
 }
 
+
+/*
 private static void sendBytes(FileInputStream fis, OutputStream os) throws Exception {
 	// Construct a 1K buffer to hold bytes on their way to the socket.
 	byte[] buffer = new byte[1024];
@@ -124,4 +199,17 @@ private static void sendBytes(FileInputStream fis, OutputStream os) throws Excep
 	while ((bytes = fis.read(buffer)) != -1)
 	    os.write(buffer, 0, bytes);
 }
+*/
+/*
+private static void sendCommand(String cmd) {
+	command_port += 2;
+	outToServer.writeUTF(cmd);
+	outToServer.writeInt(command_port);
+	//outToServer.writeBytes(command_port + " " + cmd + " " + '\n');
 }
+*/
+/*
+private void waitForServer() {
+	while (
+}
+*/
