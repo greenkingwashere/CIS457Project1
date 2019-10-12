@@ -66,8 +66,7 @@ public static void main(String[] args) throws IOException {
 		}
      		//cleanup
 		outToClient.close();
-		inFromClient.close();
-		connectionSocket.close();	
+		inFromClient.close();	
 	}
 	welcomeSocket.close();
 }  
