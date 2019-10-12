@@ -6,14 +6,13 @@ import java.util.*;
 public class FTPServer{
  
 public static void main(String[] args) throws IOException {
-            String fromClient;
-            String clientCommand = "";
+            //String fromClient;
+            //String clientCommand = "";
             byte[] data;
-            int port;
 	    final int controlPort = 12000;
-	    String nextConnection;
             ServerSocket welcomeSocket = null;
-            Socket dataSocket = null;
+	    Socket connectionSocket = null;
+            //Socket dataSocket = null;
             boolean isOpen = false;
 
           try {
@@ -27,8 +26,10 @@ public static void main(String[] args) throws IOException {
             String frstln;
         
 	while(isOpen) {
-              	Socket connectionSocket = welcomeSocket.accept();
-                DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
+              	connectionSocket = welcomeSocket.accept();
+		
+		/*	
+		DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
                 DataInputStream inFromClient = new DataInputStream(connectionSocket.getInputStream());
             	
 		//read client command
@@ -40,7 +41,6 @@ public static void main(String[] args) throws IOException {
                 port = inFromClient.readInt();
 
 	      	System.out.println("Command "+clientCommand+" received from "+nextConnection+":"+port);	
-		
 		if (clientCommand.equals("connect")) {
 			System.out.println("Received connection from: "+nextConnection+":"+port);	
 		}
@@ -48,15 +48,16 @@ public static void main(String[] args) throws IOException {
                		
 			dataSocket = new Socket(nextConnection, port);
                       	//DataOutputStream  dataOutToClient = new DataOutputStream(new BufferedOutputStream(dataSocket.getOutputStream()));
-               
+               */
 			try {
-			ClientCommand request = new ClientCommand(clientCommand, dataSocket);
+			ClientCommand request = new ClientCommand(connectionSocket);
 			Thread requestThread = new Thread(request); 
 			requestThread.start();
 			}
 			catch (Exception e) {
 				System.out.println(e);
 			}
+		/*
 		} 
 		else if (clientCommand.equals("retr:")) {
                 	
@@ -67,17 +68,29 @@ public static void main(String[] args) throws IOException {
      		//cleanup
 		outToClient.close();
 		inFromClient.close();	
+		*/
 	}
 	welcomeSocket.close();
 }  
 
 private static class ClientCommand implements Runnable {
-	String command;
+	Socket controlSocket;
 	Socket dataSocket;
+        String fromClient;
+        String clientCommand = "";
+	String nextConnection;
+        int port;
+	DataOutputStream outToClient;
+	DataInputStream inFromClient;
 
-	public ClientCommand(String cmd, Socket clientSocket) throws Exception {
-		command = cmd;
-		dataSocket = clientSocket;
+	public ClientCommand(Socket ctrlSocket) throws Exception {
+		controlSocket = ctrlSocket;
+
+		outToClient = new DataOutputStream(controlSocket.getOutputStream());
+                inFromClient = new DataInputStream(controlSocket.getInputStream());
+
+		System.out.println("Client thread started.");
+		//cmd = inFromClient.readUTF();
 	}
 
 	public void run() {
@@ -91,10 +104,35 @@ private static class ClientCommand implements Runnable {
 
 	private void processRequest() throws Exception {
 		
-                DataOutputStream dataOutToClient = new DataOutputStream(dataSocket.getOutputStream());
+                //DataOutputStream dataOutToClient = new DataOutputStream(dataSocket.getOutputStream());
+			
+		//if there's data to read
+		while(true) {
+		while (inFromClient.available() > 0) {
 		
-		switch(command) {
+		//read command
+                fromClient = inFromClient.readUTF();
+                 
+                StringTokenizer tokens = new StringTokenizer(fromClient);
+                clientCommand = tokens.nextToken();
+		nextConnection = controlSocket.getInetAddress().getHostAddress();
+		
+		//read port
+                port = inFromClient.readInt();
+		
+	        System.out.println("Command "+clientCommand+" received from "+nextConnection+":"+port);
+
+		switch(clientCommand) {
+			case "connect":
+				System.out.println("Received connection from: "+nextConnection+":"+port);	
+
+				break;
 			case "list":
+
+				//establish data connection
+				dataSocket = new Socket(nextConnection, port);
+                		DataOutputStream dataOutToClient = new DataOutputStream(dataSocket.getOutputStream());
+
 				File currDir = new File(".");
                         	File[] fileList = currDir.listFiles();
                         	for(File f : fileList) {
@@ -106,6 +144,9 @@ private static class ClientCommand implements Runnable {
 					}
 				}
 				dataOutToClient.writeUTF("EOF");
+
+				dataOutToClient.close();
+        			dataSocket.close();
 				break;
 
 			case "stor:":
@@ -116,10 +157,12 @@ private static class ClientCommand implements Runnable {
 
 				break;
 		}
-	
-	dataOutToClient.close();
-        dataSocket.close();
-	System.out.println("Thread terminated");
+
+		}
+		}
+	//dataOutToClient.close();
+        //dataSocket.close();
+	//System.out.println("Thread terminated");
 	}
 }
 }
