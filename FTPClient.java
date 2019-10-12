@@ -33,7 +33,7 @@ public static void main(String argv[]) throws Exception
 	
 	//byte[] fileContents;
 
-	System.out.println("|| FTP Client Project 1 ~ CIS 457 ||");
+	System.out.println("\n|| FTP Client Project 1 ~ CIS 457 ||");
 	//wait for user input
 	/*
 	BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
@@ -62,8 +62,8 @@ public static void main(String argv[]) throws Exception
         //outToServer = new DataOutputStream(ControlSocket.getOutputStream());
         //inFromServer = new DataInputStream(ControlSocket.getInputStream());
           
-        System.out.println("Input next command:");
-    	
+        System.out.println("\nInput next command:\nconnect <host> <port> | quit | list | stor: <file> | retr: <file>");  
+
 	BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
 	sentence = inFromUser.readLine();
     	tokens = new StringTokenizer(sentence);
@@ -91,11 +91,14 @@ public static void main(String argv[]) throws Exception
 
         		outToServer = new DataOutputStream(ControlSocket.getOutputStream());
         		inFromServer = new DataInputStream(ControlSocket.getInputStream());
+
+			outToServer.writeUTF(command);
+			outToServer.writeInt(command_port);
     		}
     		catch (Exception e) {
     			System.out.println("Failed to set up socket.");
 			System.out.println(e);
-			isOpen = false;
+			connectionEstablished = false;
 		}
 
 	}	
@@ -111,10 +114,6 @@ public static void main(String argv[]) throws Exception
 		//outToServer.flush();
 		outToServer.writeUTF(command);
 		outToServer.writeInt(command_port);
-		System.out.println("A POINT: "+command_port);
-		//sendCommand(command);
-		//outToServer.writeBytes (port + " " + sentence + " " + '\n');
-		//controlPort = inFromServer.readInt();
 
 		try {
 		welcomeData = new ServerSocket(command_port);
@@ -126,13 +125,10 @@ public static void main(String argv[]) throws Exception
 		}
 
 	 	//notEnd = true;
-	        System.out.println("\nListing files on port "+command_port);
+	        System.out.println("\nListing files in host directory...");
 		while (true) {
 		    try {
 		    modifiedSentence = inData.readUTF();
-	            //if (modifiedSentence == null)
-	            //	notEnd = false;
-	            //else
 	            if (modifiedSentence.equals("EOF"))
 			break;
 
@@ -147,7 +143,7 @@ public static void main(String argv[]) throws Exception
 		welcomeData.close();
 	        }
          else if(command.equals("retr:")) {
-        	/*
+        	/* this is older code, use with caution
         	fileName = tokens.nextToken();
         	
         	ServerSocket welcomeFile = new ServerSocket(command_port);
@@ -177,8 +173,8 @@ public static void main(String argv[]) throws Exception
          else if(sentence.equals("stor:")) {
         	fileName = tokens.nextToken();
 
-         }
-	}
+         	}
+	  }
     }
     if (ControlSocket != null) {
     	outToServer.close();
@@ -187,29 +183,3 @@ public static void main(String argv[]) throws Exception
     }
 }    
 }
-
-
-/*
-private static void sendBytes(FileInputStream fis, OutputStream os) throws Exception {
-	// Construct a 1K buffer to hold bytes on their way to the socket.
-	byte[] buffer = new byte[1024];
-	int bytes = 0;
-	
-	// Copy requested file into the socket's output stream.
-	while ((bytes = fis.read(buffer)) != -1)
-	    os.write(buffer, 0, bytes);
-}
-*/
-/*
-private static void sendCommand(String cmd) {
-	command_port += 2;
-	outToServer.writeUTF(cmd);
-	outToServer.writeInt(command_port);
-	//outToServer.writeBytes(command_port + " " + cmd + " " + '\n');
-}
-*/
-/*
-private void waitForServer() {
-	while (
-}
-*/

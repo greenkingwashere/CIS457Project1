@@ -35,31 +35,20 @@ public static void main(String[] args) throws IOException {
                 fromClient = inFromClient.readUTF();
                  
                 StringTokenizer tokens = new StringTokenizer(fromClient);
-                //frstln = tokens.nextToken();
-                //port = Integer.parseInt(frstln);
                 clientCommand = tokens.nextToken();
 		nextConnection = connectionSocket.getInetAddress().getHostAddress();
                 port = inFromClient.readInt();
 
 	      	System.out.println("Command "+clientCommand+" received from "+nextConnection+":"+port);	
-                //if (clientCommand.equals("connect") {
-
-		//	}
-		if (clientCommand.equals("list")) {
+		
+		if (clientCommand.equals("connect")) {
+			System.out.println("Received connection from: "+nextConnection+":"+port);	
+		}
+		else if (clientCommand.equals("list")) {
                		
 			dataSocket = new Socket(nextConnection, port);
                       	//DataOutputStream  dataOutToClient = new DataOutputStream(new BufferedOutputStream(dataSocket.getOutputStream()));
-                      	/*
-			dataOutToClient.writeInt(port);
-                        File currDir = new File(".");
-                        File[] fileList = currDir.listFiles();
-                        for(File f : fileList){
-                            //if(f.isDirectory())
-                                //System.out.println("TO BUFFER");
-                            if(f.isFile())
-                              dataOutToClient.writeUTF(f.getName());
-                        }
-			*/
+               
 			try {
 			ClientCommand request = new ClientCommand(clientCommand, dataSocket);
 			Thread requestThread = new Thread(request); 
@@ -72,9 +61,13 @@ public static void main(String[] args) throws IOException {
 		else if (clientCommand.equals("retr:")) {
                 	
      		}
+		else if (clientCommand.equals("stor:")) {
+
+		}
      		//cleanup
 		outToClient.close();
-		inFromClient.close();	
+		inFromClient.close();
+		connectionSocket.close();	
 	}
 	welcomeSocket.close();
 }  
