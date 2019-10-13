@@ -8,7 +8,6 @@ public class FTPServer{
 public static void main(String[] args) throws IOException {
             //String fromClient;
             //String clientCommand = "";
-            byte[] data;
 	    final int controlPort = 12000;
             ServerSocket welcomeSocket = null;
 	    Socket connectionSocket = null;
@@ -151,12 +150,6 @@ private static class ClientCommand implements Runnable {
 				break;
 
 			case "stor:":
-			/*
-			fromClient = inFromClient.readUTF();
-			System.out.println(fromClient);
-		   StringTokenizer token2 = new StringTokenizer(fromClient);
-		   clientCommand = token2.nextToken();
-		   */
 				
 		   //IF the below line is commented out, the error becomes an IOException
 		   String fileName = tokens.nextToken();
@@ -171,52 +164,64 @@ private static class ClientCommand implements Runnable {
 				try{
 					file.createNewFile();
 					System.out.println(fileName + "created in current directory");
-					
-				}finally{
-					FileOutputStream intoFile = new FileOutputStream(file);
 					//establish data connection
 					dataSocket = new Socket(nextConnection, port);
-					BufferedInputStream fileIn = new BufferedInputStream(dataSocket.getInputStream());
-					intoFile.write(fromClient.getBytes());
-					System.out.println("Incoming line: " + fromClient.getBytes());
-					intoFile.flush();
-					intoFile.close();
+					FileOutputStream fileIn = new FileOutputStream("." + fileName);
+					//int size = fileIn.readInt();
+					//byte[] data = new byte[1024];
+					BufferedReader dataIn = new BufferedReader(
+				new InputStreamReader(dataSocket.getInputStream()));
+					String nextLine = dataIn.readLine();
+					if (nextLine.equals("EOF"))
+						break;
+						fileIn.write(nextLine.getBytes());
+						fileIn.close();
+						dataIn.close();
 				//System.out.println(fileName + "Already in directory");
-
-				System.out.println("FILE ALREADY EXISTS");
+				}catch(Exception e){
+					System.out.println(e);
 				}
+				dataSocket.close();
 				break;
 
 			case "retr:":
-			/*
 			fromClient = inFromClient.readUTF();
-                 System.out.println(fromClient);
-				//fileName = tokens.nextToken();
-		nextConnection = controlSocket.getInetAddress().getHostAddress();	
-			
-		//establish data connection
+                 System.out.println("Attempting to find the file...");
+				try{
+				//establish data connection
 				dataSocket = new Socket(nextConnection, port);
+				fileName = tokens.nextToken();
+				nextConnection = controlSocket.getInetAddress().getHostAddress();	
 				dataOutToClient = new DataOutputStream(dataSocket.getOutputStream());
 				currDir = new File(".");
+				File newFile = new File(fileName);
+				byte[] data = new byte[(int)newFile.length()];
 				fileList = currDir.listFiles();
-					for(File f : fileList) {
-						if(f.getName() == fileName){
-							dataOutToClient.writeInt(200);
-							dataOutToClient.writeUTF("OK");
-							try(BufferedReader br = new BufferedReader(new FileReader(f))){
-								String line;
-								while((line = br.readLine()) != null){
-								dataOutToClient.writeUTF(line);
-								}
-							}
-						}else{
+				FileInputStream fileIn = new FileInputStream(newFile);
+				BufferedInputStream buffered = new BufferedInputStream(fileIn);
+				DataInputStream inStream = new DataInputStream(buffered);
+				for(File f : fileList) {
+					if(f.getName() == fileName){
+						System.out.println("File found");
+						dataOutToClient.writeInt(200);
+						dataOutToClient.writeUTF("OK");
+						inStream.readFully(data, 0, data.length);
+						dataOutToClient.writeInt(data.length);
+						dataOutToClient.write(data, 0, data.length);
+						inStream.close();
+						dataSocket.close();
+						dataOutToClient.flush();
+					System.out.println("File finished sending to Client.");
+					}else{
 							dataOutToClient.writeInt(550);
 						}
 					}
 					dataOutToClient.close();
+				}catch(Exception e){
+					System.out.println(e);
+				}
 					
 					dataSocket.close();
-				*/
 					break;
 		case "quit":
 			controlSocket.close();
