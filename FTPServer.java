@@ -112,10 +112,11 @@ private static class ClientCommand implements Runnable {
 		
 		//read command
                 fromClient = inFromClient.readUTF();
-                 
+                 System.out.println(fromClient);
                 StringTokenizer tokens = new StringTokenizer(fromClient);
                 clientCommand = tokens.nextToken();
 		nextConnection = controlSocket.getInetAddress().getHostAddress();
+				//String fileName = tokens.nextToken();
 		
 		//read port
                 port = inFromClient.readInt();
@@ -150,12 +151,59 @@ private static class ClientCommand implements Runnable {
 				break;
 
 			case "stor:":
-
+			fromClient = inFromClient.readUTF();
+			System.out.println(fromClient);
+		   StringTokenizer token2 = new StringTokenizer(fromClient);
+		   clientCommand = token2.nextToken();
+		   String fileName = token2.nextToken();
+   			nextConnection = controlSocket.getInetAddress().getHostAddress();	
+	   
+				if(file.createNewFile()){
+					FileOutputStream intoFile = new FileOutputStream(fromClient);
+					//establish data connection
+					dataSocket = new Socket(nextConnection, port);
+					dataOutToClient = new DataOutputStream(dataSocket.getOutputStream());
+					intoFile.write(fromClient.getBytes());
+					intoFile.flush();
+					intoFile.close();
+				}
 				break;
 
 			case "retr:":
-
-				break;
+			fromClient = inFromClient.readUTF();
+                 System.out.println(fromClient);
+                StringTokenizer token3 = new StringTokenizer(fromClient);
+				clientCommand = token3.nextToken();
+				fileName = token3.nextToken();
+		nextConnection = controlSocket.getInetAddress().getHostAddress();	
+			
+		//establish data connection
+				dataSocket = new Socket(nextConnection, port);
+				dataOutToClient = new DataOutputStream(dataSocket.getOutputStream());
+				currDir = new File(".");
+				fileList = currDir.listFiles();
+					for(File f : fileList) {
+						if(f.getName() == fileName){
+							dataOutToClient.writeInt(200);
+							dataOutToClient.writeUTF("ok");
+							try(BufferedReader br = new BufferedReader(new FileReader(f))){
+								String line;
+								while((line = br.readLine()) != null){
+								dataOutToClient.writeUTF(line);
+								}
+							}
+						}else{
+							dataOutToClient.writeInt(550);
+						}
+					}
+					dataOutToClient.close();
+					
+					dataSocket.close();
+				
+					break;
+		case "quit":
+			controlSocket.clost();
+		break;
 		}
 
 		}
