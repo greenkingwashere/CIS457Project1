@@ -151,30 +151,47 @@ private static class ClientCommand implements Runnable {
 				break;
 
 			case "stor:":
+			/*
 			fromClient = inFromClient.readUTF();
 			System.out.println(fromClient);
 		   StringTokenizer token2 = new StringTokenizer(fromClient);
 		   clientCommand = token2.nextToken();
-		   String fileName = token2.nextToken();
-   			nextConnection = controlSocket.getInetAddress().getHostAddress();	
-	   
-				if(file.createNewFile()){
-					FileOutputStream intoFile = new FileOutputStream(fromClient);
+		   */
+				
+		   //IF the below line is commented out, the error becomes an IOException
+		   String fileName = tokens.nextToken();
+		   //Currently, causes NoSuchElementException error
+
+
+		   //System.out.println(fileName);
+		   //File currentDirectory = new File("./"+fileName);
+   			nextConnection = controlSocket.getInetAddress().getHostAddress();		
+			   String relativePath = new File("").getAbsolutePath();	
+			   File file = new File(relativePath);
+				try{
+					file.createNewFile();
+					System.out.println(fileName + "created in current directory");
+					
+				}finally{
+					FileOutputStream intoFile = new FileOutputStream(file);
 					//establish data connection
 					dataSocket = new Socket(nextConnection, port);
-					dataOutToClient = new DataOutputStream(dataSocket.getOutputStream());
+					BufferedInputStream fileIn = new BufferedInputStream(dataSocket.getInputStream());
 					intoFile.write(fromClient.getBytes());
+					System.out.println("Incoming line: " + fromClient.getBytes());
 					intoFile.flush();
 					intoFile.close();
+				//System.out.println(fileName + "Already in directory");
+
+				System.out.println("FILE ALREADY EXISTS");
 				}
 				break;
 
 			case "retr:":
+			/*
 			fromClient = inFromClient.readUTF();
                  System.out.println(fromClient);
-                StringTokenizer token3 = new StringTokenizer(fromClient);
-				clientCommand = token3.nextToken();
-				fileName = token3.nextToken();
+				//fileName = tokens.nextToken();
 		nextConnection = controlSocket.getInetAddress().getHostAddress();	
 			
 		//establish data connection
@@ -185,7 +202,7 @@ private static class ClientCommand implements Runnable {
 					for(File f : fileList) {
 						if(f.getName() == fileName){
 							dataOutToClient.writeInt(200);
-							dataOutToClient.writeUTF("ok");
+							dataOutToClient.writeUTF("OK");
 							try(BufferedReader br = new BufferedReader(new FileReader(f))){
 								String line;
 								while((line = br.readLine()) != null){
@@ -199,10 +216,10 @@ private static class ClientCommand implements Runnable {
 					dataOutToClient.close();
 					
 					dataSocket.close();
-				
+				*/
 					break;
 		case "quit":
-			controlSocket.clost();
+			controlSocket.close();
 		break;
 		}
 
