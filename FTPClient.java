@@ -39,9 +39,16 @@ public static void main(String argv[]) throws Exception
 
 	BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
 	sentence = inFromUser.readLine();
-    	tokens = new StringTokenizer(sentence);
-    	String command = tokens.nextToken();
-	//outToServer.writeUTF(command);
+    
+	String command;
+	tokens = null;
+	if (!sentence.isEmpty())
+		{
+		tokens = new StringTokenizer(sentence);
+		command = tokens.nextToken();
+		}
+	else
+		command = "";
         
 	if (command.equals("connect")) {
 		
@@ -70,12 +77,13 @@ public static void main(String argv[]) throws Exception
     		}
     		catch (Exception e) {
     			System.out.println("Failed to set up socket.");
-			System.out.println(e);
-			connectionEstablished = false;
+    			connectionEstablished = false;
 		}
 
 	}	
          else if(sentence.equals("quit")) {
+        	 outToServer.writeUTF(command);
+        	 outToServer.writeInt(command_port);
         	 isOpen = false;
         	 System.out.println("Have a nice day!");
          }
@@ -96,8 +104,7 @@ public static void main(String argv[]) throws Exception
 		System.out.println(e);
 		}
 
-	 	//notEnd = true;
-	        System.out.println("\nListing files in host directory...");
+	    System.out.println("\nListing files in host directory...");
 		while (true) {
 		    try {
 		    modifiedSentence = inData.readUTF();
@@ -127,7 +134,7 @@ public static void main(String argv[]) throws Exception
 		//listen on the control connection for the file's status
 		while (true) {
 			if (inFromServer.available() != 0) {
-				fileStatus = Integer.parseInt(inFromServer.readUTF());
+				fileStatus = inFromServer.readInt();
 				break;
 			}
 		}
@@ -143,7 +150,7 @@ public static void main(String argv[]) throws Exception
 		    	fileExists = true;
 		    	FileOutputStream fileOut = null;
 		    	try {
-		    		fileOut = new FileOutputStream("."+fileName);
+		    		fileOut = new FileOutputStream(fileName);
 		    	}
 		    	catch (FileNotFoundException e) {
 		    		System.out.println("Requested file is already a directory.");
@@ -151,7 +158,9 @@ public static void main(String argv[]) throws Exception
 		    	}
 		    			    
 			String nextLine;
+			byte[] newLine = "\n".getBytes();
 		    	if (fileExists) {
+		    		boolean fileWritten = true;
 		    		while (true) {
 					try {
 					nextLine = dataIn.readLine();
@@ -160,13 +169,16 @@ public static void main(String argv[]) throws Exception
 						break;
 
 		    			fileOut.write(nextLine.getBytes());
+		    			fileOut.write(newLine);
 					}
 					catch (Exception e) {
-						System.out.println("\nError writing file.");       
+						System.out.println("\nError writing file.");
+						fileWritten = false;
 						break;
 					}
 				}
-		    		System.out.println("Retrieved file "+fileName+" successfully.");
+		    	if (fileWritten)
+		    	System.out.println("Retrieved file "+fileName+" successfully.");
 		    	}
 			fileOut.close();
 			dataIn.close();
@@ -199,7 +211,8 @@ public static void main(String argv[]) throws Exception
 			outToServer.writeUTF(fileName);
 
 			//for reading file
-			BufferedReader fileStream = new BufferedReader(new FileReader(currentDirectory));
+			BufferedReader fileStream = new BufferedReader(
+				new FileReader(currentDirectory));
 
         	    	//for sending file
 			ServerSocket welcomeFile = new ServerSocket(command_port);
@@ -210,29 +223,35 @@ public static void main(String argv[]) throws Exception
 			String nextLine;
 		    	while (true) {
 				try {
+				//read line
 				nextLine = fileStream.readLine();
-
+				
 				if (nextLine == null)
 					break;
-
+				
 		    		dataOut.write(nextLine, 0, nextLine.length());
+		    		dataOut.newLine();
 				}
 				catch (Exception e) {
 					System.out.println("\nError writing file.\n");
 				}	
-			}	
+		    }
+		    	dataOut.write("EOF",0,3);
 		    	System.out.println("\nSent file "+fileName+" successfully.\n");
 	 	
-		fileIn.close();
-		fileStream.close();
-		welcomeFile.close();
-		dataOut.close();
-		}	
-	  }
+			fileIn.close();
+			fileStream.close();
+			welcomeFile.close();
+			dataOut.close();
+         	}	
+         }
+         else {
+        	 System.out.println("\nInvalid command; use one of the listed commands\n");
+         }
     }
 	}
     if (ControlSocket != null) {
-	outToServer.close();
+    	outToServer.close();
     	inFromServer.close();
     	ControlSocket.close();
     	}
