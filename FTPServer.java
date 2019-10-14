@@ -43,7 +43,8 @@ private static class ClientCommand implements Runnable {
         String fromClient;
         String clientCommand = "";
 	String nextConnection;
-        int port;
+    int port;
+    static int clientDataPort = 12002;
 	DataOutputStream outToClient;
 	DataInputStream inFromClient;
 
@@ -79,21 +80,23 @@ private static class ClientCommand implements Runnable {
                 clientCommand = tokens.nextToken();
                 nextConnection = controlSocket.getInetAddress().getHostAddress();
 		
-		//read port
-                port = inFromClient.readInt();
-		
-	        System.out.println("Command "+clientCommand+" received from "+nextConnection+":"+port);
-
+		//read port (if not connecting)
+                if (!clientCommand.equals("connect")){
+                	port = inFromClient.readInt();
+                	System.out.println("Command "+clientCommand+" received from "+nextConnection+":"+port);
+                }
+	    
 		switch(clientCommand) {
 			case "connect":
-				System.out.println("Received connection from: "+nextConnection+":"+port);	
-
+				outToClient.writeInt(clientDataPort);				
+				System.out.println("Received connection from: "+nextConnection+", allocated to port: "+clientDataPort);	
+				clientDataPort += 2;
 				break;
 			case "list":
 
 				//establish data connection
 				dataSocket = new Socket(nextConnection, port);
-                		DataOutputStream dataOutToClient = new DataOutputStream(dataSocket.getOutputStream());
+                DataOutputStream dataOutToClient = new DataOutputStream(dataSocket.getOutputStream());
 
 				File currDir = new File(".");
                 	File[] fileList = currDir.listFiles();
@@ -108,7 +111,7 @@ private static class ClientCommand implements Runnable {
         		dataSocket.close();
 				break;
 
-			case "stor:":				
+			case "stor:":	
 
 					String fileName = inFromClient.readUTF();
 		   
@@ -138,8 +141,7 @@ private static class ClientCommand implements Runnable {
 				break;
 			case "retr:":
 				fileName = inFromClient.readUTF();
-                 //System.out.println("Attempting to find the file...");
-				
+
 				currDir = new File(".");
 				File newFile = new File(fileName);
 				byte[] data = new byte[(int)newFile.length()];
@@ -188,7 +190,6 @@ private static class ClientCommand implements Runnable {
 			isOpen = false;
 			break;
 			}
-
 		}
 		}
 		controlSocket.close();

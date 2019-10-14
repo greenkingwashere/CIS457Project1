@@ -16,7 +16,7 @@ public static void main(String argv[]) throws Exception
     StringTokenizer tokens;
     
    	int controlPort = 12000;
-	int command_port = controlPort + 2;
+	int command_port = 0;
 	
 	boolean isOpen = true;
 	boolean connectionEstablished = false;
@@ -51,8 +51,6 @@ public static void main(String argv[]) throws Exception
 		command = "";
         
 	if (command.equals("connect")) {
-		
-    		//sentence = inFromUser.readLine();
 		String serverName = tokens.nextToken();
 		controlPort = Integer.parseInt(tokens.nextToken());
 
@@ -64,16 +62,17 @@ public static void main(String argv[]) throws Exception
     				inFromServer.close();
     				ControlSocket.close();
     			}
-			
+    			
     			ControlSocket = new Socket(serverName, controlPort);
     			System.out.println("You are connected to " + serverName + ":" + controlPort);
 			connectionEstablished = true;
 
         		outToServer = new DataOutputStream(ControlSocket.getOutputStream());
         		inFromServer = new DataInputStream(ControlSocket.getInputStream());
-
+        	
 			outToServer.writeUTF(command);
-			outToServer.writeInt(command_port);
+			//permanent port for data connection
+			command_port = inFromServer.readInt();
     		}
     		catch (Exception e) {
     			System.out.println("Failed to set up socket.");
@@ -89,15 +88,19 @@ public static void main(String argv[]) throws Exception
          }
 	else if (connectionEstablished)
 		{
-		command_port += 2;
-		if(command.equals("list")) {
-		//outToServer.flush();
+		fileName = null;
 		outToServer.writeUTF(command);
 		outToServer.writeInt(command_port);
-
+		if (!command.equals("list")) {
+			fileName = tokens.nextToken();
+			outToServer.writeUTF(fileName);
+		}
+		//establish data connection
+		ServerSocket welcomeFile = new ServerSocket(command_port);
+    	dataSocket = welcomeFile.accept();
+		
+		if(command.equals("list")) {
 		try {
-		welcomeData = new ServerSocket(command_port);
-		dataSocket = welcomeData.accept();
 	 	inData = new DataInputStream(dataSocket.getInputStream());
 		}
 		catch (Exception e) {
@@ -118,18 +121,9 @@ public static void main(String argv[]) throws Exception
  
 		System.out.println("\nAll files displayed.");
 		inData.close();
-		dataSocket.close();
-		welcomeData.close();
 	        }
          else if(command.equals("retr:")) {
-        	//this is older code, use with caution
-        	fileName = tokens.nextToken();
-        
-		//query filename to server
-		outToServer.writeUTF(command);
-		outToServer.writeInt(command_port);
-		outToServer.writeUTF(fileName);
-		
+
 		int fileStatus = 0;
 		//listen on the control connection for the file's status
 		while (true) {
@@ -142,10 +136,8 @@ public static void main(String argv[]) throws Exception
 		if (fileStatus == 200) {
 			System.out.println("\n 200 OK; Retrieving file");
 
-        	    	ServerSocket welcomeFile = new ServerSocket(command_port);
-		    	Socket fileSocket = welcomeFile.accept();
 		    	BufferedReader dataIn = new BufferedReader(
-				new InputStreamReader(fileSocket.getInputStream()));
+				new InputStreamReader(dataSocket.getInputStream()));
 		    
 		    	fileExists = true;
 		    	FileOutputStream fileOut = null;
@@ -182,7 +174,7 @@ public static void main(String argv[]) throws Exception
 		    	}
 			fileOut.close();
 			dataIn.close();
-			fileSocket.close();
+			//dataSocket.close();
 			welcomeFile.close();
 		}
 		else {
@@ -190,7 +182,7 @@ public static void main(String argv[]) throws Exception
 		}
 	 }
          else if(command.equals("stor:")) {
-        	fileName = tokens.nextToken();
+        	//fileName = tokens.nextToken();
 		
 		fileExists = true;
 		FileInputStream fileIn = null;
@@ -206,24 +198,18 @@ public static void main(String argv[]) throws Exception
 		    	fileExists = false;
 		    	}
          	if (fileExists) {
-			outToServer.writeUTF(command);
-			outToServer.writeInt(command_port);
-			outToServer.writeUTF(fileName);
 
 			//for reading file
 			BufferedReader fileStream = new BufferedReader(
 				new FileReader(currentDirectory));
 
-        	    	//for sending file
-			ServerSocket welcomeFile = new ServerSocket(command_port);
-		    	Socket fileSocket = welcomeFile.accept();
+        	    //for sending file
 		    	BufferedWriter dataOut = new BufferedWriter(
-				new OutputStreamWriter(fileSocket.getOutputStream()));
+				new OutputStreamWriter(dataSocket.getOutputStream()));
 			
 			String nextLine;
 		    	while (true) {
 				try {
-				//read line
 				nextLine = fileStream.readLine();
 				
 				if (nextLine == null)
@@ -241,14 +227,15 @@ public static void main(String argv[]) throws Exception
 	 	
 			fileIn.close();
 			fileStream.close();
-			welcomeFile.close();
 			dataOut.close();
-         	}	
+         	}
          }
          else {
         	 System.out.println("\nInvalid command; use one of the listed commands\n");
          }
-    }
+		welcomeFile.close();
+		}
+	
 	}
     if (ControlSocket != null) {
     	outToServer.close();
