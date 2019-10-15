@@ -35,7 +35,7 @@ public static void main(String argv[]) throws Exception
 
 	while(isOpen) {
 
-        System.out.println("\nInput next command:\nconnect <host> <port> | quit | list | stor: <file> | retr: <file>");  
+        System.out.println("\nInput next command:\nconnect <host> <port> | quit | list | stor: <file> | retr: <file> | help");  
 
 	BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
 	sentence = inFromUser.readLine();
@@ -85,6 +85,14 @@ public static void main(String argv[]) throws Exception
         	 outToServer.writeInt(command_port);
         	 isOpen = false;
         	 System.out.println("Have a nice day!");
+         }
+         else if(sentence.equals("help")){
+            System.out.println("FTP Client v. 1.0");
+            System.out.println("connect <host> <port>: Use to connect to a server running the FTP client. If you are running the server and client on the same machine, use \"localhost\" as the host.");
+            System.out.println("stor: <file>: attempts to send a file from client to the server.");
+            System.out.println("retr: <file>: download a file from the server.");
+            System.out.println("list: see a list of all of the files on the server available to download.");
+         
          }
 	else if (connectionEstablished)
 		{
